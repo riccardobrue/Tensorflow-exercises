@@ -134,4 +134,3 @@ for i in range(num_epochs):
         print("ACCURACY: ", compute_accuracy(mnist.test.images, mnist.test.labels) * 100, "%")
 
 sess.close()
-# ==== # òòò
