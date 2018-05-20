@@ -1,0 +1,48 @@
+http://blog.aloni.org/posts/backprop-with-tensorflow/
+https://stackoverflow.com/questions/44210561/how-do-backpropagation-works-in-tensorflow
+
+
+Question
+How should I "tell" tf that a certain cost function derives from a NN?
+
+(short) Answer
+This is done by simply configuring your optimizer to minimize (or maximize) a tensor. For example, if I have a loss function like so
+
+loss = tf.reduce_sum( tf.square( y0 - y_out ) )
+where y0 is the ground truth (or desired output) and y_out is the calculated output, then I could minimize the loss by defining my training function like so
+
+train = tf.train.GradientDescentOptimizer(1.0).minimize(loss)
+This tells Tensorflow that when train is calculated, it is to apply gradient descent on loss to minimize it, and loss is calculated using y0 and y_out, and so gradient descent will also affect those (if they are trainable variables), and so on.
+
+The variable y0, y_out, loss, and train are not standard python variables but instead descriptions of a computation graph. Tensorflow uses information about that computation graph to unroll it while applying gradient descent.
+
+Specifically how it does that is beyond the scope of this answer. Here and here are two good starting points for more information about more specifics.
+
+
+[See  "back_prop_ex.py" file for the code]
+
+
+Let's go through it, but in reverse order starting with
+
+sess.run(train)
+This tells tensorflow to look up the graph node defined by train and calculate it. Train is defined as
+
+train = tf.train.GradientDescentOptimizer(1.0).minimize(loss)
+To calculate this tensorflow must compute the automatic differentiation for loss, which means walking the graph. loss is defined as
+
+loss = tf.reduce_sum( tf.square( y0 - y_out ) )
+Which is really tensorflow applying automatic differentiation to unroll first tf.reduce_sum, then tf.square, then y0 - y_out, which leads to then having to walk the graph for both y0 and y_out.
+
+y0 = tf.constant( y_ , dtype=tf.float32 )
+y0 is a constant and will not be updated.
+
+y_out = tf.sigmoid( tf.matmul( h1,m2 ) + b2 )
+y_out will be processed similar to loss, first tf.sigmoid will be processed, etc...
+
+All in all, each operation ( such as tf.sigmoid, tf.square ) not only defines the forward operation ( apply sigmoid or square ) but also information necessary for automatic differentiation. This is different than standard python math such as
+
+x = 7 + 9
+The above equation encodes nothing except how to update x, where as
+
+z = y0 - y_out
+encodes the graph of subtracting y_out from y0 and stores both the forward operation and enough to do automatic differentiation in z
